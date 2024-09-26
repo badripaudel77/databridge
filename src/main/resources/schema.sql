@@ -3,12 +3,10 @@
 
 create table if not exists providers
 (
-    id            bigint not null
-        primary key,
+    id bigint not null primary key,
     provider_name varchar(255),
     provider_tin  bigint,
     specialty     varchar(255)
 );
 
-alter table if exists providers
-    owner to postgres;
+alter table if exists providers owner to postgres;

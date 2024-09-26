@@ -1,6 +1,7 @@
 package com.example.datasyncapp.services;
 
 import com.example.datasyncapp.dtos.ProviderDTO;
+import com.example.datasyncapp.enums.ProviderFieldEnum;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -9,6 +10,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +21,7 @@ import static com.mongodb.client.model.Filters.*;
 
 @Service
 public class MongoDataService {
-    MongoClient mongoClient;
+     private final MongoClient mongoClient;
 
     @Value("${com.example.datasyncapp.mongodb.name}")
     private String mongoDBName;
@@ -28,39 +30,43 @@ public class MongoDataService {
 
     Logger logger = LoggerFactory.getLogger(MongoDataService.class);
 
+    @Autowired
     public MongoDataService(MongoClient mongoClient) {
         this.mongoClient = mongoClient;
     }
 
-    public void insertProvidersToCollection(String collectionName, List<ProviderDTO> providerDTOList, int offset, int pageSize) {
+    public void insertProvidersToCollection(String collectionName, List<ProviderDTO> providerDTOS, int offset, int pageSize) {
         MongoDatabase mongoDatabase = this.mongoClient.getDatabase(mongoDBName);
 
-        List<ProviderDTO> providerDTOS = providerDTOList.stream().toList();
-        boolean collectionExists = mongoClient.getDatabase(mongoDBName).listCollectionNames()
-                .into(new ArrayList<>()).contains(collectionName);
+        boolean collectionExists = mongoClient
+                    .getDatabase(mongoDBName)
+                    .listCollectionNames()
+                    .into(new ArrayList<>())
+                    .contains(collectionName);
 
         if(!collectionExists) {
             mongoDatabase.createCollection(collectionName);
-            logger.info("Collection {} " + collectionName + " doesn't exist, so creating the collection");
+            logger.info("Collection {}  doesn't exist, so creating it.", collectionName);
         }
         MongoCollection<Document> documentMongoCollection = mongoDatabase.getCollection(collectionName);
         // Other ways like MongoTemplate, MongoRepository etc
         for (ProviderDTO providerDTO: providerDTOS) {
             Document document = prepareDocument(providerDTO);
             boolean documentExists = doesDocumentAlreadyExist(document, documentMongoCollection);
-            if(!documentExists) {
-                logger.info("Data from RDBMS inserted into collection " + collectionName + " with size " + providerDTOList.size() +  " and offset = " + offset + " and page size = " + pageSize);
-                documentMongoCollection.insertOne(document);
+            if(documentExists) {
+                return;
             }
+            logger.info("Data from RDBMS inserted into collection: {}  with size: {}  with offset : {} and page size: {} ", collectionName, providerDTOS.size(), offset, pageSize);
+            documentMongoCollection.insertOne(document);
         }
     }
 
     private Document prepareDocument(ProviderDTO providerDTO) {
         Document document = new Document();
-        document.append("providerId", providerDTO.providerId());
-        document.append("providerName", providerDTO.providerName());
-        document.append("providerSpecialty", providerDTO.providerSpecialty());
-        document.append("providerTIN", providerDTO.providerTIN());
+        document.append(ProviderFieldEnum.PROVIDER_ID.getField(), providerDTO.providerId());
+        document.append(ProviderFieldEnum.PROVIDER_NAME.getField(), providerDTO.providerName());
+        document.append(ProviderFieldEnum.PROVIDER_SPECIALTY.getField(), providerDTO.providerSpecialty());
+        document.append(ProviderFieldEnum.PROVIDER_TIN.getField(), providerDTO.providerTIN());
         return document;
     }
 
@@ -77,18 +83,20 @@ public class MongoDataService {
         // Map to ProviderDTO
         FindIterable<Document> documents;
         Bson filter = null;
+         /*
+         * Filter for provider name either ("OR" operation)  with first name (eg: Special Provider) or second (Provider 20) and so on.
+         * filter = regex("providerName", "(Provider|Special)", "i"); //: Filter for text containing with or operation.
+         */
         if(filterDocument != null) {
-            /**
-             * Filter for provider name either ("OR" operation)  with first name (eg: Special Provider) or second (Provider 20) and so on.
-             * filter = regex("providerName", "(Provider|Special)", "i"); //: Filter for text containing with or operation.
-             */
-            filter = or(eq("providerName", "Special Provider"), eq("providerName", "Provider 20"));
+            filter = or(eq(ProviderFieldEnum.PROVIDER_NAME.getField(), "Special Provider"), eq(ProviderFieldEnum.PROVIDER_NAME.getField(), "Provider 20"));
         }
         documents = filterDocument != null ? providerMongoCollection.find(filter) : providerMongoCollection.find();
         List<ProviderDTO> providerDTOS = new ArrayList<>();
         for (Document document : documents) {
-            ProviderDTO providerDTO = new ProviderDTO(document.getLong("providerId"), document.getString("providerName"),
-                    document.getString("providerSpecialty"), document.getLong("providerTIN"));
+            ProviderDTO providerDTO = new ProviderDTO(document.getLong(ProviderFieldEnum.PROVIDER_ID.getField()),
+                    document.getString(ProviderFieldEnum.PROVIDER_NAME.getField()),
+                    document.getString(ProviderFieldEnum.PROVIDER_SPECIALTY.getField()),
+                    document.getLong(ProviderFieldEnum.PROVIDER_TIN.getField()));
             providerDTOS.add(providerDTO);
         }
         return providerDTOS;

@@ -31,7 +31,7 @@ public class DataSyncAppApplication {
     @Autowired
     public DataSyncAppApplication(ApplicationContext context, ProviderService providerService) {
         this.context = context;
-        this.providerService = providerService;
+        DataSyncAppApplication.providerService = providerService;
     }
 
     public static void main(String[] args) {
@@ -39,19 +39,19 @@ public class DataSyncAppApplication {
         providerService.fetchAndSyncProvidersToMongo();
         providerService.fetchAndSyncProvidersToRedis();
         applicationContext.close();
-        log.info("<<< Sync Operation completed >>>");
+        log.info(">>> Sync Operation completed >>>");
     }
 
     @PostConstruct
     public void setUp() {
-        System.out.println("<<<<< set up post construct >>> ");
-        System.out.println("Custom value >> " + customValue);
+        log.info(">>> set up post construct >>>");
+        log.info("Custom value >> {}", customValue);
     }
 
     @Bean
     public CommandLineRunner commandLineRunner(ApplicationContext context) {
         return args -> {
-            log.info("Printing all the beans : ");
+            log.info(">>> Printing all the beans : ");
             String[] beanDefinitionNames = context.getBeanDefinitionNames();
             Arrays.sort(beanDefinitionNames);
             for (String bean : beanDefinitionNames) {

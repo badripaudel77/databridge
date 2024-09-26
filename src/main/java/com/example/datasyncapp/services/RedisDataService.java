@@ -21,15 +21,13 @@ import java.util.Set;
 @Slf4j
 @Service
 public class RedisDataService {
-    private RedisTemplate<String, ?> redisTemplate;
 
     // Hash Key is String, each key in a hash key is String and Value is Object (ProviderDTO)
     private HashOperations<String, String, Object> hashOperations;
 
     @Autowired
-    public RedisDataService(RedisTemplate redisTemplate) {
-        this.redisTemplate = redisTemplate;
-        this.hashOperations = this.redisTemplate.opsForHash();
+    public RedisDataService(RedisTemplate<String, ?> redisTemplate) {
+        this.hashOperations = redisTemplate.opsForHash();
     }
 
     public void saveProvidersToRedis(String redisHashName, List<ProviderDTO> providers, int offset, int pageSize) {

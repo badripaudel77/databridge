@@ -8,6 +8,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,7 +18,7 @@ import java.util.stream.Stream;
 @Slf4j
 @Service
 public class ProviderService {
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
 
     @Value("${com.example.datasyncapp.mongo.collection.name}")
     private String collectionName;
@@ -25,8 +26,8 @@ public class ProviderService {
     @Value("${com.example.datasyncapp.redis.hash.name}")
     private String redisHashName;
 
-    private MongoDataService mongoDataService;
-    private RedisDataService redisDataService;
+    private final MongoDataService mongoDataService;
+    private final RedisDataService redisDataService;
 
     @Autowired
     public ProviderService(MongoDataService mongoDataService, RedisDataService redisDataService, EntityManager entityManager) {
@@ -39,7 +40,8 @@ public class ProviderService {
     public void fetchAndSyncProvidersToMongo() {
         int offset = 0;
         int pageSize = 10;
-        Long totalDataCount = entityManager.createQuery("SELECT DISTINCT COUNT(p.id) FROM Provider p", Long.class)
+        Long totalDataCount = entityManager
+                .createQuery("SELECT DISTINCT COUNT(p.id) FROM Provider p", Long.class)
                 .getSingleResult();
         log.info("<<< Fetching from the RDS started, total records to process : " + totalDataCount + " will be synced to mongo collection : " + collectionName);
         while (offset <= totalDataCount) {
@@ -80,15 +82,16 @@ public class ProviderService {
             providers.clear();
             offset += pageSize;
         }
-        log.info("<<< All providers fetched from RDS and synced to redis hash : " + redisHashName + " >>>");
+        log.info(">>> All providers fetched from RDS and synced to redis hash : {}", redisHashName);
     }
 
-    private List<ProviderDTO> getProcessedProviders(Query selectProvidersQuery) {
+    public List<ProviderDTO> getProcessedProviders(Query selectProvidersQuery) {
         Stream<Provider> providersStream = selectProvidersQuery.getResultStream();
         List<ProviderDTO> providers = providersStream
                 .map(provider ->
                         new ProviderDTO(
-                                provider.getId(), provider.getName(), provider.getSpecialty(),
+                                provider.getId(), provider.getName(),
+                                provider.getSpecialty(),
                                 provider.getProviderTIN()) // can use mapper library as well which converts from one class to another.
                 )
                 .collect(Collectors.toList());

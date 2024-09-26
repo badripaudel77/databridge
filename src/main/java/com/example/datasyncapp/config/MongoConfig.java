@@ -6,6 +6,7 @@ import com.mongodb.client.MongoDatabase;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 
 @Configuration
 public class MongoConfig {
@@ -18,7 +19,9 @@ public class MongoConfig {
         return MongoClients.create();
     }
 
-    public MongoDatabase mongoDatabase() {
-        return MongoClients.create().getDatabase(mongoDBName);
+    @Bean
+    @DependsOn("mongoClient")
+    public MongoDatabase mongoDatabase(MongoClient mongoClient) {
+        return mongoClient.getDatabase(mongoDBName);
     }
 }
