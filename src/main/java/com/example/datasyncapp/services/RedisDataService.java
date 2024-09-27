@@ -1,8 +1,10 @@
 package com.example.datasyncapp.services;
 
 import com.example.datasyncapp.dtos.ProviderDTO;
+import com.example.datasyncapp.events.ActionEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -23,7 +25,7 @@ import java.util.Set;
 public class RedisDataService {
 
     // Hash Key is String, each key in a hash key is String and Value is Object (ProviderDTO)
-    private HashOperations<String, String, Object> hashOperations;
+    private final HashOperations<String, String, Object> hashOperations;
 
     @Autowired
     public RedisDataService(RedisTemplate<String, ?> redisTemplate) {

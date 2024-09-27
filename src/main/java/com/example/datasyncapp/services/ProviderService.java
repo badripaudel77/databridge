@@ -1,6 +1,7 @@
 package com.example.datasyncapp.services;
 
 import com.example.datasyncapp.dtos.ProviderDTO;
+import com.example.datasyncapp.events.ActionEvent;
 import com.example.datasyncapp.models.Provider;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
@@ -9,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,6 +30,9 @@ public class ProviderService {
 
     private final MongoDataService mongoDataService;
     private final RedisDataService redisDataService;
+
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @Autowired
     public ProviderService(MongoDataService mongoDataService, RedisDataService redisDataService, EntityManager entityManager) {
@@ -58,7 +63,10 @@ public class ProviderService {
             providers.clear();
             offset += pageSize;
         }
-        log.info("<<< All providers fetched from RDS and synced to mongo db : " + collectionName + " collection >>>");
+        // Publish Event of Type ActionEvent
+        applicationEventPublisher.publishEvent(
+                new ActionEvent(this, "<<< All providers fetched from RDS and synced to mongo db :" + collectionName)
+        );
     }
 
     @Transactional
@@ -82,7 +90,10 @@ public class ProviderService {
             providers.clear();
             offset += pageSize;
         }
-        log.info(">>> All providers fetched from RDS and synced to redis hash : {}", redisHashName);
+        // Publish Event of Type ActionEvent
+        applicationEventPublisher.publishEvent(
+                new ActionEvent(this, "All providers fetched from RDS and synced to redis hash : " + redisHashName)
+        );
     }
 
     public List<ProviderDTO> getProcessedProviders(Query selectProvidersQuery) {

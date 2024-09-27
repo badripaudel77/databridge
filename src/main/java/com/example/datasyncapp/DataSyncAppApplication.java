@@ -44,8 +44,7 @@ public class DataSyncAppApplication {
 
     @PostConstruct
     public void setUp() {
-        log.info(">>> set up post construct >>>");
-        log.info("Custom value >> {}", customValue);
+        log.info(">>> set up post construct >>>, custom value : {} ", customValue);
     }
 
     @Bean
