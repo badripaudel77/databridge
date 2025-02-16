@@ -1,3 +1,8 @@
+### About the Project
+_________________________________
+- This application is responsible for syncing data from Relational Database (PostgreSQL) to Non-Relational Database (MongoDB & Redis)
+- This fetches the data in a batch and inserts to MongoDB and Redis.
+
 ##### Set Active Profile
 
 ```bash
